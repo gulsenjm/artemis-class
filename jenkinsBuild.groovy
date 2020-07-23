@@ -36,20 +36,22 @@ def slavePodTemplate = """
             hostPath:
               path: /var/run/docker.sock
     """
-    def environment = ""
+    def environment  = ""
     def docker_image = ""
     def branch = "${scm.branches[0].name}".replaceAll(/^\*\//, '').replace("/", "-").toLowerCase()
 
     docker_image = "gulsenjm/artemis:${branch.replace('version/', 'v')}"
-    
+
+    // master -> prod  dev-feature/* -> dev qa-feature/* -> qa 
     if (branch == "master") {
       environment = "prod"
-    } else if (branch.contains('dev-feature/')) {
+    } else if (branch.contains('dev-feature')) {
       environment = "dev"
-    } else if (branch.contains('qa-feature/')) {
+    } else if (branch.contains('qa-feature')) {
       environment = "qa"
     }
     println("${environment}")
+
 
     podTemplate(name: k8slabel, label: k8slabel, yaml: slavePodTemplate, showRawYaml: false) {
       node(k8slabel) {
@@ -57,6 +59,7 @@ def slavePodTemplate = """
         stage('Pull SCM') {
             checkout scm 
         }
+
         container("docker") {
             dir('deployments/docker') {
                 stage("Docker Build") {

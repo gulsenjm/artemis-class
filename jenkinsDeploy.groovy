@@ -9,7 +9,6 @@ properties([
     ])
 
 
-
 println("""
 ################################################
     Terraform apply: ${params.terraformApply}
