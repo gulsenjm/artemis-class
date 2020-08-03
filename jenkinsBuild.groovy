@@ -67,7 +67,13 @@ def slavePodTemplate = """
                 }
 
                 stage("TRigger Deploy") {
-                  build 'artemis-deploy'
+                  build 'artemis-deploy',
+                  build job: 'artemis-deploy', 
+                  parameters: [
+                      [$class: 'BooleanParameterValue', name: 'terraformApply', value: true],
+                      [$class: 'StringParameterValue',  name: 'environment', value: "${dev}"]
+                      // [$class: 'StringParameterValue',  name: 'docker_image', value: "${docker_image}"]
+                      ]
                 }
             }
         }
