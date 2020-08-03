@@ -66,8 +66,7 @@ def slavePodTemplate = """
                     sh "docker push gulsenjm/artemis:${branch.replace('version/','v')}"
                 }
 
-                stage("TRigger Deploy") {
-                  build 'artemis-deploy',
+                stage("Trigger Deploy") {
                   build job: 'artemis-deploy', 
                   parameters: [
                       [$class: 'BooleanParameterValue', name: 'terraformApply', value: true],
