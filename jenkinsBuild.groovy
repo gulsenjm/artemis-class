@@ -36,47 +36,48 @@ def slavePodTemplate = """
               path: /var/run/docker.sock
     """
 
-    // def environment = ""
-    // def docker_image = ""
     def branch = "${scm.branches[0].name}".replaceAll(/^\*\//, '').replace("/", "-").toLowerCase()
     
     //Scheduling the node to run the build
     podTemplate(name: k8slabel, label: k8slabel, yaml: slavePodTemplate, showRawYaml: false) {
       node(k8slabel) {
         
-        stage('Pull SCM') {     //Responsible to pull the source from GitHub in this case. NOTE: before we pull the code we are using params.branch to get exactly the version to be pulled
-            checkout scm
+        stage('Pull SCM') {     //Responsible to pull the source from GitHub in this case. NOTE: before we pull the code we are using params.release_name to get exactly the version to be pulled
+          checkout scm
         }
-        
-        container("docker") {
-            dir('deployments/docker') {
-                stage("Docker Build") {
-                        sh "docker build -t gulsenjm/artemis:${branch.replace('version/','v')} . "
-                        // sh "docker build -t gulsenjm/artemis:${branch.replace('version/', 'v')}  ."
-                }
+        container("docker"){
+          dir('deployments/docker'){
+            stage("Docker Build") {
+              container("docker") {
+                sh "docker build -t gulsenjm/artemis:${branch.replace('version/','v')} . "
+              }
+            }
 
-                //We have created a credential call docker-hub-creds which is contains our username and passworrd so Jenkins can use that securely
-                stage("Docker Login") {
-                    withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', passwordVariable: 'password', usernameVariable: 'username')]) {
-                    sh "docker login --username ${username} --password ${password}"
+            stage("Docker Login") {
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', passwordVariable: 'password', usernameVariable: 'username')]) {
+                    container("docker") {
+                        sh "docker login --username ${username} --password ${password}"
                     }
                 }
-                //We have created a credential call docker-hub-creds which is contains our username and passworrd so Jenkins can use that securely
-                stage("Docker Push") {
-                    sh "docker push gulsenjm/artemis:${branch.replace('version/','v')}"
-                }
-
-                stage("Trigger Deploy") {
-                  build job: 'artemis-deploy', 
-                  parameters: [
-                      [$class: 'BooleanParameterValue', name: 'terraformApply', value: true],
-                      [$class: 'StringParameterValue',  name: 'environment', value: "${dev}"]
-                      // [$class: 'StringParameterValue',  name: 'docker_image', value: "${docker_image}"]
-                      ]
-                }
             }
+
+            stage("Docker Push") {
+              container("docker") {
+                sh "docker push gulsenjm/artemis:${branch.replace('version/','v')}"
+              }
+            }
+
+            stage("Trigger Deploy"){
+              build job: 'artemis-deploy', 
+                parameters: [
+                    [$class: 'BooleanParameterValue', name: 'terraformApply', value: true],
+                    [$class: 'StringParameterValue',  name: 'environment', value: "dev"],
+                    // [$class: 'StringParameterValue',  name: 'docker_image', value: "${docker_image}"]
+                  ]
+            }
+
+          }
         }
-        //pull the source code we will need to run the build
+
       }
     }
-    
