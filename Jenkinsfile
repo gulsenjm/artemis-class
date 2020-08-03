@@ -64,7 +64,10 @@ def slavePodTemplate = """
                 //We have created a credential call docker-hub-creds which is contains our username and passworrd so Jenkins can use that securely
                 stage("Docker Push") {
                     sh "docker push gulsenjm/artemis:${branch.replace('version/','v')}"
-                    
+                }
+
+                stage("TRigger Deploy") {
+                  build 'artemis-deploy'
                 }
             }
         }
